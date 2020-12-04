@@ -2,20 +2,20 @@ import pandas as pd
 from sklearn import linear_model
 from sklearn import preprocessing as prep
 from sklearn import metrics as metrics
+from scipy.stats import reciprocal, uniform
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RepeatedKFold
 from sklearn import svm as svm
 from sklearn import neural_network as neural_net
 
-from yellowbrick.regressor import AlphaSelection
 import math as math
 from scipy import stats
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pd.read_csv('C:/mnist.csv')
-data_values = pd.read_csv('C:/mnist.csv').values
+data = pd.read_csv('mnist.csv')
+data_values = pd.read_csv('mnist.csv').values
 
 labels = data_values[:, 0]
 digits = data_values[:, 1:]
@@ -34,7 +34,7 @@ nine = data.loc[data['label'] == 9].values[:, 1:]
 print(data.iloc[:, 1:].sum(axis=0))
 
 ink = np.array([sum(row) for row in digits])
-zero_digits = np.array([math.log(np.count_nonzero(row == 0)) for row in digits])
+zero_digits = np.array([np.count_nonzero(row == 0) for row in digits])
 
 # Assignment 1
 # SUM
@@ -175,24 +175,31 @@ sample_5000 = prep.scale(sample_5000)
 
 # LASSO - find complexity parameters and estimated accuracy
 print('LASSO')
-lasso = linear_model.Lasso()
+lasso = linear_model.Lasso(alpha=0.16)
 
-cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+#cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
-grid = dict()
-grid['alpha'] = np.arange(-2, 2, 0.1)
-search = GridSearchCV(lasso, grid, scoring='neg_mean_absolute_error', cv=cv, n_jobs=-1)
-
-
-lasso_fit = search.fit(sample_5000, sample_5000_labels)
-print(lasso_fit.alpha)
-y_lasso = lasso_fit.predict(data_copy)
-print(metrics.mean_absolute_error(labels_copy, y_lasso))
+#grid = dict()
+#grid['alpha'] = np.arange(0, 1, 0.01)
+#search = GridSearchCV(lasso, grid, scoring='neg_mean_absolute_error', cv=cv, n_jobs=-1)
 
 
-
+lasso.fit(sample_5000, sample_5000_labels)
+lasso_prediction = lasso.predict(data_copy)
+print(lasso.score(data_copy, labels_copy))
+print(metrics.mean_squared_error(labels_copy, lasso_prediction))
 
 # Support vector - find complexity parameters and estimated accuracy
+param_grid = {'C': [0.1,1,10], 'gamma': [1,0.1, 0.01],'kernel': ['rbf']}
+grid = GridSearchCV(svm.SVC(),param_grid,refit=True,verbose=2, n_jobs=-1)
+grid.fit(sample_5000,sample_5000_labels)
+#grid_predictions = grid.predict(data_copy)
+print(grid.cv_results_)
+print(grid.get_params())
+print(grid.best_estimator_)
+#print(grid_predictions.score(data_copy, labels_copy))
+#print(metrics.mean_squared_error(labels_copy, grid_predictions))
+#print(metrics.confusion_matrix(labels_copy,grid_predictions))
 #supp_vec = svm.SVC().fit(sample_5000, sample_5000_labels)
 #y_vec = supp_vec.predict(data_copy)
 #print(metrics.mean_absolute_error(labels_copy, y_vec))
