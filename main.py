@@ -2,8 +2,13 @@ import pandas as pd
 from sklearn import linear_model
 from sklearn import preprocessing as prep
 from sklearn import metrics as metrics
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RepeatedKFold
 from sklearn import svm as svm
 from sklearn import neural_network as neural_net
+
+from yellowbrick.regressor import AlphaSelection
 import math as math
 from scipy import stats
 import matplotlib.pyplot as plt
@@ -166,20 +171,36 @@ data_copy = pd.concat([data_copy, sample_5000, sample_5000]).drop_duplicates(kee
 labels_copy = data_copy.values[:, 0]
 data_copy = data_copy.iloc[:, 1:]
 
+sample_5000 = prep.scale(sample_5000)
+
 # LASSO - find complexity parameters and estimated accuracy
-lr_3 = linear_model.Lasso(alpha=0.1).fit(sample_5000, sample_5000_labels)
-y_lasso = lr_3.predict(data_copy)
+print('LASSO')
+lasso = linear_model.Lasso()
+
+cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+
+grid = dict()
+grid['alpha'] = np.arange(-2, 2, 0.1)
+search = GridSearchCV(lasso, grid, scoring='neg_mean_absolute_error', cv=cv, n_jobs=-1)
+
+
+lasso_fit = search.fit(sample_5000, sample_5000_labels)
+print(lasso_fit.alpha)
+y_lasso = lasso_fit.predict(data_copy)
 print(metrics.mean_absolute_error(labels_copy, y_lasso))
 
+
+
+
 # Support vector - find complexity parameters and estimated accuracy
-supp_vec = svm.SVC().fit(sample_5000, sample_5000_labels)
-y_vec = supp_vec.predict(data_copy)
-print(metrics.mean_absolute_error(labels_copy, y_vec))
+#supp_vec = svm.SVC().fit(sample_5000, sample_5000_labels)
+#y_vec = supp_vec.predict(data_copy)
+#print(metrics.mean_absolute_error(labels_copy, y_vec))
 
 # Neural network - find complexity parameters and estimated accuracy
-neural_network = neural_net.MLPClassifier().fit(sample_5000, sample_5000_labels)
-y_neural = neural_network.predict(data_copy)
-print(metrics.mean_absolute_error(labels_copy, y_neural))
+#neural_network = neural_net.MLPClassifier().fit(sample_5000, sample_5000_labels)
+#y_neural = neural_network.predict(data_copy)
+#print(metrics.mean_absolute_error(labels_copy, y_neural))
 
 
 
